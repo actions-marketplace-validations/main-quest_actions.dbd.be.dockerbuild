@@ -1,23 +1,22 @@
 # Expecting repo to already be checked out
-name: "gsutil shortcut"
+name: "actions.dbd.be.dockerbuild"
 description: "Builds the base image for all dbd back-end services for"
 inputs:
-  registry:
-    description: "ex. us-docker.pkg.dev"
-    required: false
-    default: 'us-docker.pkg.dev'
-  gcp_project:
-    required: false
-    default: 'dragon-blood-dungeon'
-  gar_key:
-    required: true
   dbd_stage:
     description: "ec. stage22"
     required: true
+  gar_key:
+    required: true
+  registry:
+    description: "ex. us-docker.pkg.dev"
+    required: false
+    default: "us-docker.pkg.dev"
+  gcp_project:
+    required: false
+    default: "dragon-blood-dungeon"
   image_name:
-    required: true
-  deployer_dirname:
-    required: true
+    description: "repo's name by default"
+    required: false
 
 outputs:
   project: 
@@ -45,14 +44,24 @@ runs:
         username: _json_key
         password: ${{ inputs.gar_key }}  
 
+    - name: Get image name
+      shell: bash
+      run: |
+        image_name=${{ inputs.image_name }}
+        if [ -z "$image_name" ]; then
+          image_name=${{ github.event.repository.name }}
+        fi
+        echo Setting image name to "$image_name"
+        echo "IMAGE_NAME=$image_name" >> $GITHUB_ENV
+
     - name: Get image registry-qualified name
       shell: bash
-      run: echo "REGISTRY_QUALIFIED_IMAGE_NAME=${{ inputs.registry }}/${{ inputs.gcp_project }}/${{ inputs.dbd_stage }}/${{ inputs.image_name }}" >> $GITHUB_ENV
+      run: echo "REGISTRY_QUALIFIED_IMAGE_NAME=${{ inputs.registry }}/${{ inputs.gcp_project }}/${{ inputs.dbd_stage }}/${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
 
     - name: Get component name
       shell: bash
       run: |
-        n="${{ inputs.image_name }}"
+        n="${{ env.IMAGE_NAME }}"
         n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
         echo "COMPONENT_NAME=$n" >> $GITHUB_ENV
 
