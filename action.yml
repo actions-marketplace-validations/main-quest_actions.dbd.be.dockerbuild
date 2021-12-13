@@ -1,0 +1,116 @@
+# Expecting repo to already be checked out
+name: "gsutil shortcut"
+description: "Builds the base image for all dbd back-end services for"
+inputs:
+  registry:
+    description: "ex. us-docker.pkg.dev"
+    required: false
+    default: 'us-docker.pkg.dev'
+  gcp_project:
+    required: false
+    default: 'dragon-blood-dungeon'
+  gar_key:
+    required: true
+  dbd_stage:
+    description: "ec. stage22"
+    required: true
+  image_name:
+    required: true
+  deployer_dirname:
+    required: true
+
+outputs:
+  project: 
+    description: "The project id parsed from the key file. Might be removed as it's not needed anymore in the internal implementation"
+    value: ${{ steps.parser_unix.outputs.project_id }}${{ steps.parser_win.outputs.project_id }}
+  # email: 
+  #   description: "The email of the service account parsed from the key file"
+  #   value: ${{ steps.parser.outputs.project_id }}
+    
+runs:
+  using: "composite"
+  steps:  
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+      # with:
+      #   buildkitd-flags: --debug
+        
+    - name: Login to GAR
+      uses: docker/login-action@v1
+      with:
+        registry: ${{ inputs.registry }}
+        username: _json_key
+        password: ${{ inputs.gar_key }}  
+
+    - name: Get image registry-qualified name
+      shell: bash
+      run: echo "REGISTRY_QUALIFIED_IMAGE_NAME=${{ inputs.registry }}/${{ inputs.gcp_project }}/${{ inputs.dbd_stage }}/${{ inputs.image_name }}" >> $GITHUB_ENV
+
+    - name: Get component name
+      shell: bash
+      run: |
+        n="${{ inputs.image_name }}"
+        n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
+        echo "COMPONENT_NAME=$n" >> $GITHUB_ENV
+
+    # As per https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
+    # Important: make sure to not tag an image with no registry, as the push will fail
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3
+      with:
+        # list of Docker images to use as base name for tags
+        images: |
+          ${{ env.REGISTRY_QUALIFIED_IMAGE_NAME }}
+        # generate Docker tags based on the following events/attributes
+        tags: |
+          type=schedule
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha
+          latest
+
+    # See C1
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        # Commented: only amd64 (desktop) is needed for now, as we only run on this architecture
+        # platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        # See C1
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+        build-args: |
+          COMPONENT_NAME=${{ env.COMPONENT_NAME }}
+          DBD_STAGE=${{ inputs.dbd_stage }}
+
+    # See C1
+    # Temp fix
+    # https://github.com/docker/build-push-action/issues/252
+    # https://github.com/moby/buildkit/issues/1896
+    - name: Move cache
+      if: always()
+      shell: bash
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+
+# Ref C1
+## Caching layers as per https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#github-cache
