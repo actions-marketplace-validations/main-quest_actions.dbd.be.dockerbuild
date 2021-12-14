@@ -63,7 +63,7 @@ runs:
       run: |
         n="${{ env.IMAGE_NAME }}"
         n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
-        echo "COMPONENT_NAME=$n" >> $GITHUB_ENV
+        echo "DBD_COMPONENT=$n" >> $GITHUB_ENV
 
     # As per https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
     # Important: make sure to not tag an image with no registry, as the push will fail
@@ -106,7 +106,7 @@ runs:
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
         build-args: |
-          COMPONENT_NAME=${{ env.COMPONENT_NAME }}
+          DBD_COMPONENT=${{ env.DBD_COMPONENT }}
           DBD_STAGE=${{ inputs.dbd_stage }}
 
     # See C1
