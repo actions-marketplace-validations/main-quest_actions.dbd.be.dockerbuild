@@ -3,22 +3,22 @@ name: "actions.dbd.be.dockerbuild"
 description: "Builds the base image for all dbd back-end services for"
 inputs:
   dbd_stage:
-    description: "ec. stage22"
-    required: true
+    description: "Eg. stage22. If unset will be considered 'none'"
+    required: false
   gar_key:
     required: true
   registry:
-    description: "ex. us-docker.pkg.dev"
+    description: "Ex. us-docker.pkg.dev"
     required: false
     default: "us-docker.pkg.dev"
   repo_name:
-    description: "if unset, will be the same as dbd_stage"
+    description: "If unset, will be the same as dbd_stage"
     required: false
   gcp_project:
     required: false
     default: "dragon-blood-dungeon"
   image_name:
-    description: "repo's name by default"
+    description: "Repo's name by default"
     required: false
 
 outputs:
@@ -47,15 +47,23 @@ runs:
         username: _json_key
         password: ${{ inputs.gar_key }}  
 
-    - name: Get docker repo url
+    - name: Validate inputs and Get docker repo url
       shell: bash
       run: |
+        dbd_stage=${{ inputs.dbd_stage }}
+        if [ -z "$dbd_stage" ]; then
+          dbd_stage='none'
+          echo "dbd_stage is unset. Setting to '$dbd_stage'"
+        fi
+        echo "Setting DBD_STAGE to $repo"
+        echo "DBD_STAGE=$dbd_stage" >> $GITHUB_ENV
+
         repo=${{ inputs.repo }}
         if [ -z "$repo" ]; then
-          repo=${{ inputs.dbd_stage }}
+          repo=$dbd_stage
         fi
-        echo Setting docker repo name to "$repo"
         repo_url="${{ inputs.registry }}/${{ inputs.gcp_project }}/$repo"
+        echo "Setting docker repo url to $repo_url"
         echo "DOCKER_REPO_URL=$repo_url" >> $GITHUB_ENV
 
     - name: Get image name and url
@@ -120,7 +128,7 @@ runs:
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
           DBD_DOCKER_REGISTRY=${{ inputs.registry }}
           DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
-          DBD_STAGE=${{ inputs.dbd_stage }}
+          DBD_STAGE=${{ env.DBD_STAGE }}
           DBD_COMPONENT=${{ env.DBD_COMPONENT }}
 
     # See C1
