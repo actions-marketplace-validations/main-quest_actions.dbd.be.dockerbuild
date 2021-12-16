@@ -58,11 +58,11 @@ runs:
         echo "Setting DBD_STAGE to $repo"
         echo "DBD_STAGE=$dbd_stage" >> $GITHUB_ENV
 
-        repo=${{ inputs.repo }}
-        if [ -z "$repo" ]; then
-          repo=$dbd_stage
+        repo_name=${{ inputs.repo_name }}
+        if [ -z "$repo_name" ]; then
+          repo_name=$dbd_stage
         fi
-        repo_url="${{ inputs.registry }}/${{ inputs.gcp_project }}/$repo"
+        repo_url="${{ inputs.registry }}/${{ inputs.gcp_project }}/$repo_name"
         echo "Setting docker repo url to $repo_url"
         echo "DOCKER_REPO_URL=$repo_url" >> $GITHUB_ENV
 
