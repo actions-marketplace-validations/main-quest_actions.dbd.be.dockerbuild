@@ -106,9 +106,10 @@ runs:
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
         build-args: |
-          DBD_COMPONENT=${{ env.DBD_COMPONENT }}
-          DBD_STAGE=${{ inputs.dbd_stage }}
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
+          DBD_DOCKER_REGISTRY=${{ inputs.registry }}
+          DBD_STAGE=${{ inputs.dbd_stage }}
+          DBD_COMPONENT=${{ env.DBD_COMPONENT }}
 
     # See C1
     # Temp fix
