@@ -7,18 +7,22 @@ inputs:
     required: false
   gar_key:
     required: true
+  build_context:
+    description: "Docker build context, relative to the github working dir (root of the repo)"
+    required: false
+    default: "."
   registry:
     description: "Ex. us-docker.pkg.dev"
     required: false
     default: "us-docker.pkg.dev"
   repo_name:
-    description: "If unset, will be the same as dbd_stage"
+    description: "Container repo name. If unset, will be the same as $dbd_stage"
     required: false
   gcp_project:
     required: false
     default: "dragon-blood-dungeon"
   image_name:
-    description: "Repo's name by default"
+    description: "GitHub repo's name by default"
     required: false
 
 outputs:
@@ -114,7 +118,7 @@ runs:
     - name: Build and push
       uses: docker/build-push-action@v2
       with:
-        context: .
+        context: ${{ inputs.build_context }}
         # Commented: only amd64 (desktop) is needed for now, as we only run on this architecture
         # platforms: linux/amd64,linux/arm64
         platforms: linux/amd64
