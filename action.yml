@@ -106,7 +106,9 @@ runs:
           type=sha
           latest
 
-    - run: |
+    - name: Compose cache key
+      shell: bash
+      run: |
         cache_key=${{ runner.os }}-buildx-${{ github.sha }}-"$(env | md5sum)"-${{ hashFiles(format('{0}/**', inputs.build_context))}}
         echo "BDX_CACHE_KEY=$cache_key" >> $GITHUB_ENV
 
