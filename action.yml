@@ -5,7 +5,7 @@ inputs:
   dbd_stage:
     description: "Eg. stage22. If unset will be considered 'none'"
     required: false
-  gar_key:
+  gar_key_base64:
     required: true
   build_context:
     description: "Docker build context, relative to the github working dir (root of the repo)"
@@ -52,8 +52,8 @@ runs:
       uses: docker/login-action@v1
       with:
         registry: ${{ inputs.registry }}
-        username: _json_key
-        password: ${{ inputs.gar_key }}  
+        username: _json_key_base64
+        password: ${{ inputs.gar_key_base64 }}  
 
     - name: Validate inputs and Get docker repo url
       shell: bash
