@@ -98,6 +98,12 @@ runs:
         n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
         echo "DBD_COMPONENT=$n" >> $GITHUB_ENV
 
+    - name: "Construct buildersha-... for source workflow's repo"
+      shell: bash
+      id: buildersha
+      run: |
+        echo "value=buildersha-${{ env.GITHUB_SHA }}" >> $GITHUB_OUTPUT
+
     # As per https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
     # Important: make sure to not tag an image with no registry, as the push will fail
     - name: Docker meta
@@ -115,6 +121,7 @@ runs:
           type=semver,pattern={{major}}
           type=sha
           latest
+          ${{ steps.outputs.buildersha.value }}
 
     - name: Compose cache key
       shell: bash
@@ -163,6 +170,7 @@ runs:
           DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
           DBD_STAGE=${{ env.DBD_STAGE }}
           DBD_COMPONENT=${{ env.DBD_COMPONENT }}
+          DBD_BUILDER_SHA=${{ steps.outputs.buildersha.value }}
 
     # See C1
     # Temp fix
