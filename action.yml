@@ -1,4 +1,5 @@
 # Expecting repo to already be checked out
+# Some docker build documentation here, with examples: https://docs.docker.com/build/ci/github-actions/examples/
 name: "actions.dbd.be.dockerbuild"
 description: "Builds the base image for all dbd back-end services for"
 inputs:
@@ -187,6 +188,7 @@ runs:
         labels: ${{ steps.meta.outputs.labels }}
         # cache-from: ${{ env.BDX_CACHE_FROM }}
         # cache-to: ${{ env.BDX_CACHE_TO }}
+        # outputs: type=docker
         no-cache: true
         build-args: |
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
