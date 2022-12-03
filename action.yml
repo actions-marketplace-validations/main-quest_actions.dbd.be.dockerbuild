@@ -189,7 +189,7 @@ runs:
         # cache-from: ${{ env.BDX_CACHE_FROM }}
         # cache-to: ${{ env.BDX_CACHE_TO }}
         # outputs: type=docker
-        no-cache: true
+        # no-cache: true
         build-args: |
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
           DBD_DOCKER_REGISTRY=${{ inputs.registry }}
