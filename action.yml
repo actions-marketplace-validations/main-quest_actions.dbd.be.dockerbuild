@@ -180,8 +180,9 @@ runs:
         push: ${{ inputs.push == 'true' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: ${{ env.BDX_CACHE_FROM }}
-        cache-to: ${{ env.BDX_CACHE_TO }}
+        # cache-from: ${{ env.BDX_CACHE_FROM }}
+        # cache-to: ${{ env.BDX_CACHE_TO }}
+        no-cache: true
         build-args: |
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
           DBD_DOCKER_REGISTRY=${{ inputs.registry }}
