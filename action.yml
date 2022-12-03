@@ -32,7 +32,7 @@ inputs:
   cache_storage:
     description: "local or registry"
     required: false
-    default: registry
+    default: ''
 
 outputs:
   project: 
@@ -61,13 +61,13 @@ runs:
         
     - name: Login to GAR if gar_key_base64 provided
       uses: docker/login-action@v1
-      if: inputs.gar_key_base64 != ''
+      if: inputs.registry != '' && inputs.gar_key_base64 != ''
       with:
         registry: ${{ inputs.registry }}
         username: _json_key_base64
         password: ${{ inputs.gar_key_base64 }}  
 
-    - name: Validate inputs and Get docker repo url
+    - name: Set DBD_STAGE
       shell: bash
       run: |
         dbd_stage=${{ inputs.dbd_stage }}
@@ -78,15 +78,19 @@ runs:
         echo "Setting DBD_STAGE to $repo"
         echo "DBD_STAGE=$dbd_stage" >> $GITHUB_ENV
 
+    - name: Set DOCKER_REPO_URL env var, if applicable
+      shell: bash
+      if: inputs.registry != '' && inputs.gar_key_base64 != ''
+      run: |
         repo_name=${{ inputs.repo_name }}
         if [ -z "$repo_name" ]; then
-          repo_name=$dbd_stage
+          repo_name=$DBD_STAGE
         fi
         repo_url="${{ inputs.registry }}/${{ inputs.gcp_project }}/$repo_name"
         echo "Setting docker repo url to $repo_url"
         echo "DOCKER_REPO_URL=$repo_url" >> $GITHUB_ENV
 
-    - name: Get image name and url
+    - name: Construct image name and url
       shell: bash
       run: |
         image_name=${{ inputs.image_name }}
@@ -95,7 +99,14 @@ runs:
         fi
         echo Setting image name to "$image_name"
         echo "IMAGE_NAME=$image_name" >> $GITHUB_ENV
-        echo "IMAGE_URL=$DOCKER_REPO_URL/$image_name" >> $GITHUB_ENV
+        if [ -n "$DOCKER_REPO_URL" ]; then
+          image_url_or_name="$DOCKER_REPO_URL/$IMAGE_NAME"
+          echo "DOCKER_REPO_URL is set => set IMAGE_URL_OR_NAME to $image_url_or_name"
+        else
+          image_url_or_name="$IMAGE_NAME"
+          echo "DOCKER_REPO_URL is unset => set IMAGE_URL_OR_NAME to same value as IMAGE_NAME"
+        fi
+        echo "IMAGE_URL_OR_NAME=$image_url_or_name" >> $GITHUB_ENV
 
     - name: Get component name
       shell: bash
@@ -118,7 +129,7 @@ runs:
       with:
         # list of Docker images to use as base name for tags
         images: |
-          ${{ env.IMAGE_URL }}
+          ${{ env.IMAGE_URL_OR_NAME }}
         # generate Docker tags based on the following events/attributes
         tags: |
           type=schedule
@@ -139,8 +150,9 @@ runs:
     - name: Set cache type
       shell: bash
       run: |
+        echo "TESTT: ${{ inputs.push == 'true' }}"
         if [ "${{ inputs.cache_storage }}" == "registry" ]; then
-          value_from="type=registry,ref=${{ env.IMAGE_URL }}:buildcache"
+          value_from="type=registry,ref=${{ env.IMAGE_URL_OR_NAME }}:buildcache"
           echo "BDX_CACHE_FROM=$value_from" >> $GITHUB_ENV
           echo "BDX_CACHE_TO=$value_from,mode=max" >> $GITHUB_ENV
         else
