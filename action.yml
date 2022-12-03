@@ -119,7 +119,8 @@ runs:
       shell: bash
       id: buildersha
       run: |
-        echo "value=buildersha-${{ env.GITHUB_SHA }}" >> $GITHUB_OUTPUT
+        # echo "value=buildersha-${{ env.GITHUB_SHA }}" >> $GITHUB_OUTPUT
+        echo "value=buildersha-${{ github.sha }}" >> $GITHUB_OUTPUT
 
     # As per https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
     # Important: make sure to not tag an image with no registry, as the push will fail
@@ -150,7 +151,6 @@ runs:
     - name: Set cache type
       shell: bash
       run: |
-        echo "TESTT: ${{ inputs.push == 'false' }}"
         if [ "${{ inputs.cache_storage }}" == "registry" ]; then
           value_from="type=registry,ref=${{ env.IMAGE_URL_OR_NAME }}:buildcache"
           echo "BDX_CACHE_FROM=$value_from" >> $GITHUB_ENV
