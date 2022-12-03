@@ -150,7 +150,7 @@ runs:
     - name: Set cache type
       shell: bash
       run: |
-        echo "TESTT: ${{ inputs.push == 'true' }}"
+        echo "TESTT: ${{ inputs.push == 'false' }}"
         if [ "${{ inputs.cache_storage }}" == "registry" ]; then
           value_from="type=registry,ref=${{ env.IMAGE_URL_OR_NAME }}:buildcache"
           echo "BDX_CACHE_FROM=$value_from" >> $GITHUB_ENV
