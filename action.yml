@@ -100,10 +100,10 @@ runs:
         echo Setting image name to "$image_name"
         echo "IMAGE_NAME=$image_name" >> $GITHUB_ENV
         if [ -n "$DOCKER_REPO_URL" ]; then
-          image_url_or_name="$DOCKER_REPO_URL/$IMAGE_NAME"
+          image_url_or_name="$DOCKER_REPO_URL/$image_name"
           echo "DOCKER_REPO_URL is set => set IMAGE_URL_OR_NAME to $image_url_or_name"
         else
-          image_url_or_name="$IMAGE_NAME"
+          image_url_or_name="$image_name"
           echo "DOCKER_REPO_URL is unset => set IMAGE_URL_OR_NAME to same value as IMAGE_NAME"
         fi
         echo "IMAGE_URL_OR_NAME=$image_url_or_name" >> $GITHUB_ENV
