@@ -19,7 +19,7 @@ inputs:
   registry:
     description: "Ex. us-docker.pkg.dev"
     required: false
-    default: "us-docker.pkg.dev"
+    default: ''
   repo_name:
     description: "Container repo name. If unset, will be the same as $dbd_stage"
     required: false
