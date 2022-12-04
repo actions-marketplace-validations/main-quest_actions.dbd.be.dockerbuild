@@ -9,6 +9,7 @@ inputs:
   gar_key_base64:
     required: false
     default: ''
+    description: ''
   build_context:
     description: "Docker build context, relative to the github working dir (root of the repo)"
     required: false
@@ -31,6 +32,7 @@ inputs:
   gcp_project:
     required: false
     default: "dragon-blood-dungeon"
+    description: ''
   image_name:
     description: "GitHub repo's name by default"
     required: false
@@ -38,6 +40,9 @@ inputs:
     description: "local or registry"
     required: false
     default: ''
+  builder_commit:
+    description: "SHA of the builder commit, taken via github.sha. Image will be passed an DBD_BUILDER_COMMIT arg with value 'buildersha-xxx' where xxx is the SHA"
+    required: true
 
 outputs:
   project: 
@@ -120,12 +125,13 @@ runs:
         n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
         echo "DBD_COMPONENT=$n" >> $GITHUB_ENV
 
-    - name: "Construct buildersha-... for source workflow's repo"
-      shell: bash
-      id: buildersha
-      run: |
-        # echo "value=buildersha-${{ env.GITHUB_SHA }}" >> $GITHUB_OUTPUT
-        echo "value=buildersha-${{ github.sha }}" >> $GITHUB_OUTPUT
+    # Commented SHA not available for some reason in composite actions
+    # - name: "Construct buildersha-... for source workflow's repo"
+    #   shell: bash
+    #   id: buildersha
+    #   run: |
+    #     # echo "value=buildersha-${{ env.GITHUB_SHA }}" >> $GITHUB_OUTPUT
+    #     echo "value=buildersha-${{ github.sha }}" >> $GITHUB_OUTPUT
 
     # As per https://github.com/docker/build-push-action/blob/master/docs/advanced/tags-labels.md
     # Important: make sure to not tag an image with no registry, as the push will fail
@@ -137,6 +143,14 @@ runs:
         images: |
           ${{ env.IMAGE_URL_OR_NAME }}
         # generate Docker tags based on the following events/attributes
+        # tags: |
+        #   type=schedule
+        #   type=semver,pattern={{version}}
+        #   type=semver,pattern={{major}}.{{minor}}
+        #   type=semver,pattern={{major}}
+        #   type=sha
+        #   latest
+        #   ${{ steps.outputs.buildersha.value }}
         tags: |
           type=schedule
           type=semver,pattern={{version}}
@@ -144,7 +158,7 @@ runs:
           type=semver,pattern={{major}}
           type=sha
           latest
-          ${{ steps.outputs.buildersha.value }}
+          buildersha-${{ inputs.builder_commit_sha }}
 
     - name: Compose cache key
       shell: bash
@@ -190,13 +204,20 @@ runs:
         cache-to: ${{ env.BDX_CACHE_TO }}
         # outputs: type=docker
         # no-cache: true
+        # build-args: |
+        #   DBD_PROJECT_ID=${{ inputs.gcp_project }}
+        #   DBD_DOCKER_REGISTRY=${{ inputs.registry }}
+        #   DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
+        #   DBD_STAGE=${{ env.DBD_STAGE }}
+        #   DBD_COMPONENT=${{ env.DBD_COMPONENT }}
+        #   DBD_BUILDER_COMMIT=${{ steps.outputs.buildersha.value }}
         build-args: |
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
           DBD_DOCKER_REGISTRY=${{ inputs.registry }}
           DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
           DBD_STAGE=${{ env.DBD_STAGE }}
           DBD_COMPONENT=${{ env.DBD_COMPONENT }}
-          DBD_BUILDER_SHA=${{ steps.outputs.buildersha.value }}
+          DBD_BUILDER_COMMIT='buildersha-${{ inputs.builder_commit }}'
 
     # See C1
     # Temp fix
