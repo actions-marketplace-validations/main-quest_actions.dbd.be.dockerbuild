@@ -1,7 +1,7 @@
 # Expecting repo to already be checked out
 # Some docker build documentation here, with examples: https://docs.docker.com/build/ci/github-actions/examples/
 name: "actions.dbd.be.dockerbuild"
-description: "Builds the base image for all dbd back-end services for"
+description: "Builds the base image for dbd back-end services"
 inputs:
   dbd_stage:
     description: "Eg. stage22. If unset will be considered 'none'"
@@ -36,6 +36,10 @@ inputs:
   image_name:
     description: "GitHub repo's name by default"
     required: false
+  main_component_artifact:
+    description: "Name of the main artifact file in the image, if it exists. E.g. ConsoleGameSrv.zip"
+    required: false
+    default: ''
   cache_storage:
     description: "local or registry"
     required: false
@@ -217,6 +221,7 @@ runs:
           DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
           DBD_STAGE=${{ env.DBD_STAGE }}
           DBD_COMPONENT=${{ env.DBD_COMPONENT }}
+          DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
           DBD_BUILDER_COMMIT='buildersha-${{ inputs.builder_commit }}'
 
     # See C1
