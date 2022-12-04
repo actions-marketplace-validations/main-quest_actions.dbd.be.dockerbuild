@@ -45,7 +45,7 @@ inputs:
     required: false
     default: ''
   builder_commit:
-    description: "SHA of the builder commit, taken via github.sha. Image will be passed an DBD_BUILDER_COMMIT arg with value 'buildersha-xxx' where xxx is the SHA"
+    description: "SHA of the builder commit, taken via github.sha. Image will be tagged with 'buildersha-<builder_commit>' and DBD_BUILDER_COMMIT arg will be passed with value <builder_commit> to the builder, as well as DBD_BUILDER_COMMIT_IMAGE_TAG with value 'buildersha-<builder_commit>'"
     required: true
 
 outputs:
@@ -132,6 +132,11 @@ runs:
         n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
         echo "value=$n" >> $GITHUB_OUTPUT
 
+    - name: Create image builder commit tag
+      shell: bash
+      id: image_commit_tag
+      run: echo "value=buildersha-${{ inputs.builder_commit }}" >> $GITHUB_OUTPUT
+
     # Commented SHA not available for some reason in composite actions
     # - name: "Construct buildersha-... for source workflow's repo"
     #   shell: bash
@@ -165,7 +170,7 @@ runs:
           type=semver,pattern={{major}}
           type=sha
           latest
-          buildersha-${{ inputs.builder_commit_sha }}
+          ${{ steps.image_commit_tag.outputs.value }}
 
     - name: Compose cache key
       shell: bash
@@ -225,7 +230,8 @@ runs:
           DBD_STAGE=${{ env.DBD_STAGE }}
           DBD_COMPONENT=${{ steps.comp_name.outputs.value }}
           DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
-          DBD_BUILDER_COMMIT='buildersha-${{ inputs.builder_commit }}'
+          DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
+          DBD_BUILDER_COMMIT_IMAGE_TAG=${{ steps.image_commit_tag.outputs.value }}
 
     # See C1
     # Temp fix
