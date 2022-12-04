@@ -186,8 +186,8 @@ runs:
         load: ${{ inputs.load == 'true' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        # cache-from: ${{ env.BDX_CACHE_FROM }}
-        # cache-to: ${{ env.BDX_CACHE_TO }}
+        cache-from: ${{ env.BDX_CACHE_FROM }}
+        cache-to: ${{ env.BDX_CACHE_TO }}
         # outputs: type=docker
         # no-cache: true
         build-args: |
@@ -200,14 +200,19 @@ runs:
 
     # See C1
     # Temp fix
+    # LL: also added checks, in case we're not using caching
     # https://github.com/docker/build-push-action/issues/252
     # https://github.com/moby/buildkit/issues/1896
     - name: Move docker layers cache locally if requested
       if: always() && inputs.cache_storage != 'registry'
       shell: bash
       run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        if [ -d /tmp/.buildx-cache ]; then
+          rm -rf /tmp/.buildx-cache
+        fi
+        if [ -d /tmp/.buildx-cache-new ]; then
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        fi
 
 
 # Ref C1
