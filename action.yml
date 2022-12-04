@@ -106,28 +106,31 @@ runs:
 
     - name: Construct image name and url
       shell: bash
+      id: image_info
       run: |
         image_name=${{ inputs.image_name }}
         if [ -z "$image_name" ]; then
           image_name=${{ github.event.repository.name }}
         fi
         echo Setting image name to "$image_name"
-        echo "IMAGE_NAME=$image_name" >> $GITHUB_ENV
+        echo "name=$image_name" >> $GITHUB_OUTPUT
+
         if [ -n "$DOCKER_REPO_URL" ]; then
           image_url_or_name="$DOCKER_REPO_URL/$image_name"
-          echo "DOCKER_REPO_URL is set => set IMAGE_URL_OR_NAME to $image_url_or_name"
+          echo "DOCKER_REPO_URL is set => set url_or_name to $image_url_or_name"
         else
           image_url_or_name="$image_name"
-          echo "DOCKER_REPO_URL is unset => set IMAGE_URL_OR_NAME to same value as IMAGE_NAME"
+          echo "DOCKER_REPO_URL is unset => set url_or_name to same value as name"
         fi
-        echo "IMAGE_URL_OR_NAME=$image_url_or_name" >> $GITHUB_ENV
+        echo "url_or_name=$image_url_or_name" >> $GITHUB_OUTPUT
 
     - name: Get component name
       shell: bash
+      id: comp_name
       run: |
-        n="${{ env.IMAGE_NAME }}"
+        n="${{ steps.image_info.outputs.name }}"
         n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
-        echo "DBD_COMPONENT=$n" >> $GITHUB_ENV
+        echo "value=$n" >> $GITHUB_OUTPUT
 
     # Commented SHA not available for some reason in composite actions
     # - name: "Construct buildersha-... for source workflow's repo"
@@ -145,7 +148,7 @@ runs:
       with:
         # list of Docker images to use as base name for tags
         images: |
-          ${{ env.IMAGE_URL_OR_NAME }}
+          ${{ steps.image_info.outputs.url_or_name }}
         # generate Docker tags based on the following events/attributes
         # tags: |
         #   type=schedule
@@ -175,7 +178,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.cache_storage }}" == "registry" ]; then
-          value_from="type=registry,ref=${{ env.IMAGE_URL_OR_NAME }}:buildcache"
+          value_from="type=registry,ref=${{ steps.image_info.outputs.url_or_name }}:buildcache"
           echo "BDX_CACHE_FROM=$value_from" >> $GITHUB_ENV
           echo "BDX_CACHE_TO=$value_from,mode=max" >> $GITHUB_ENV
         else
@@ -220,7 +223,7 @@ runs:
           DBD_DOCKER_REGISTRY=${{ inputs.registry }}
           DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
           DBD_STAGE=${{ env.DBD_STAGE }}
-          DBD_COMPONENT=${{ env.DBD_COMPONENT }}
+          DBD_COMPONENT=${{ steps.comp_name.outputs.value }}
           DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
           DBD_BUILDER_COMMIT='buildersha-${{ inputs.builder_commit }}'
 
