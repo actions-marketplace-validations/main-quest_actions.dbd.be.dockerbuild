@@ -160,11 +160,13 @@ runs:
       uses: docker/metadata-action@v4.1.1
       with:
         # list of Docker images to use as base name for tags
-        # Update: trying using name= to prevent docker.io being prepended to the name
+        # # Update: trying using name= to prevent docker.io being prepended to the name
+        # # images: |
+        # #   ${{ steps.image_info.outputs.image_fullname }}
         # images: |
-        #   ${{ steps.image_info.outputs.image_fullname }}
+        #   name=${{ steps.image_info.outputs.image_fullname }}
         images: |
-          name=${{ steps.image_info.outputs.image_fullname }}
+          ${{ steps.image_info.outputs.image_fullname }}
         # generate Docker tags based on the following events/attributes
         # tags: |
         #   type=schedule
@@ -213,7 +215,7 @@ runs:
           ${{ runner.os }}-buildx-
 
     - name: Build and push
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3.2.0
       with:
         context: ${{ inputs.build_context }}
         # Commented: only amd64 (desktop) is needed for now, as we only run on this architecture
