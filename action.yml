@@ -36,8 +36,12 @@ inputs:
   image_name:
     description: "GitHub repo's name by default"
     required: false
+  main_component:
+    description: "Name of the main component. Ex. 'database-proxy'"
+    required: false
+    default: ''
   main_component_artifact:
-    description: "Name of the main artifact file in the image, if it exists. E.g. ConsoleGameSrv.zip"
+    description: "Name of the main artifact file in the image, if it exists. Ex. ConsoleGameSrv.zip"
     required: false
     default: ''
   cache_storage:
@@ -45,7 +49,7 @@ inputs:
     required: false
     default: ''
   builder_commit:
-    description: "SHA of the builder commit, taken via github.sha. Image will be tagged with 'buildersha-<builder_commit>' and DBD_BUILDER_COMMIT arg will be passed with value <builder_commit> to the builder, as well as DBD_BUILDER_COMMIT_IMAGE_TAG with value 'buildersha-<builder_commit>'"
+    description: "SHA of the builder commit, taken via github.sha. DBD_BUILDER_COMMIT arg will be passed with value <builder_commit> to the builder, as well as DBD_BUILDER_COMMIT_IMAGE_TAG with value 'buildersha-<builder_commit>', which will be one of the image's tags"
     required: true
 
 outputs:
@@ -92,45 +96,49 @@ runs:
         echo "Setting DBD_STAGE to $repo"
         echo "DBD_STAGE=$dbd_stage" >> $GITHUB_ENV
 
-    - name: Set DOCKER_REPO_URL env var, if applicable
-      shell: bash
-      if: inputs.registry != '' && inputs.gar_key_base64 != ''
-      run: |
-        repo_name=${{ inputs.repo_name }}
-        if [ -z "$repo_name" ]; then
-          repo_name=$DBD_STAGE
-        fi
-        repo_url="${{ inputs.registry }}/${{ inputs.gcp_project }}/$repo_name"
-        echo "Setting docker repo url to $repo_url"
-        echo "DOCKER_REPO_URL=$repo_url" >> $GITHUB_ENV
-
     - name: Construct image name and url
       shell: bash
       id: image_info
       run: |
+        registry='${{ inputs.registry }}'
         image_name=${{ inputs.image_name }}
         if [ -z "$image_name" ]; then
+          if [ -z "$registry" ]; then
+            echo "Must specify image_name if registry was not specified" 2>&1
+            exit 29
+          fi
+
           image_name=${{ github.event.repository.name }}
         fi
         echo Setting image name to "$image_name"
         echo "name=$image_name" >> $GITHUB_OUTPUT
 
-        if [ -n "$DOCKER_REPO_URL" ]; then
-          image_url_or_name="$DOCKER_REPO_URL/$image_name"
-          echo "DOCKER_REPO_URL is set => set url_or_name to $image_url_or_name"
-        else
-          image_url_or_name="$image_name"
-          echo "DOCKER_REPO_URL is unset => set url_or_name to same value as name"
-        fi
-        echo "url_or_name=$image_url_or_name" >> $GITHUB_OUTPUT
+        if [ -n "$registry" ]; then
+          repo_name=${{ inputs.repo_name }}
+          if [ -z "$repo_name" ]; then
+            repo_name=$DBD_STAGE
+            echo "repo_name is not set => set to $repo_name"
+          fi
 
-    - name: Get component name
-      shell: bash
-      id: comp_name
-      run: |
-        n="${{ steps.image_info.outputs.name }}"
-        n=$(echo "$n" | sed "s/dbd\.docker\.be\.//")
-        echo "value=$n" >> $GITHUB_OUTPUT
+          repo_url="$registry/${{ inputs.gcp_project }}/$repo_name"
+          image_fullname="$repo_url/$image_name"
+          echo "registry is set => set image_fullname to $image_fullname"
+        else
+          image_fullname="$image_name"
+          echo "registry is not => set image_fullname to $image_fullname"
+        fi
+
+        echo "image_fullname=$image_fullname" >> $GITHUB_OUTPUT
+
+    # Update: knew too much. component name should be passed
+    # - name: Get component name
+    #   shell: bash
+    #   id: comp_name
+    #   run: |
+    #     n="${{ steps.image_info.outputs.name }}"
+    #     # Cut everything before- and including 'dbd.docker.be'. Ex: 'dslocal/dbd.docker.be.comp' => 'comp'
+    #     n=$(echo "$n" | sed "s/.*dbd\.docker\.be\.//")
+    #     echo "value=$n" >> $GITHUB_OUTPUT
 
     - name: Create image builder commit tag
       shell: bash
@@ -153,7 +161,7 @@ runs:
       with:
         # list of Docker images to use as base name for tags
         images: |
-          ${{ steps.image_info.outputs.url_or_name }}
+          ${{ steps.image_info.outputs.image_fullname }}
         # generate Docker tags based on the following events/attributes
         # tags: |
         #   type=schedule
@@ -183,7 +191,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.cache_storage }}" == "registry" ]; then
-          value_from="type=registry,ref=${{ steps.image_info.outputs.url_or_name }}:buildcache"
+          value_from="type=registry,ref=${{ steps.image_info.outputs.image_fullname }}:buildcache"
           echo "BDX_CACHE_FROM=$value_from" >> $GITHUB_ENV
           echo "BDX_CACHE_TO=$value_from,mode=max" >> $GITHUB_ENV
         else
@@ -223,12 +231,21 @@ runs:
         #   DBD_STAGE=${{ env.DBD_STAGE }}
         #   DBD_COMPONENT=${{ env.DBD_COMPONENT }}
         #   DBD_BUILDER_COMMIT=${{ steps.outputs.buildersha.value }}
+        # build-args: |
+        #   DBD_PROJECT_ID=${{ inputs.gcp_project }}
+        #   DBD_DOCKER_REGISTRY=${{ inputs.registry }}
+        #   DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
+        #   DBD_STAGE=${{ env.DBD_STAGE }}
+        #   DBD_COMPONENT=${{ steps.comp_name.outputs.value }}
+        #   DBD_COMPONENT=${{ inputs.main_component }}
+        #   DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
+        #   DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
+        #   DBD_BUILDER_COMMIT_IMAGE_TAG=${{ steps.image_commit_tag.outputs.value }}
         build-args: |
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
-          DBD_DOCKER_REGISTRY=${{ inputs.registry }}
-          DOCKER_REPO_URL=${{ env.DOCKER_REPO_URL }}
           DBD_STAGE=${{ env.DBD_STAGE }}
           DBD_COMPONENT=${{ steps.comp_name.outputs.value }}
+          DBD_COMPONENT=${{ inputs.main_component }}
           DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
           DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
           DBD_BUILDER_COMMIT_IMAGE_TAG=${{ steps.image_commit_tag.outputs.value }}
