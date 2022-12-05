@@ -51,6 +51,10 @@ inputs:
   builder_commit:
     description: "SHA of the builder commit, taken via github.sha. DBD_BUILDER_COMMIT arg will be passed with value <builder_commit> to the builder, as well as DBD_BUILDER_COMMIT_IMAGE_TAG with value 'buildersha-<builder_commit>', which will be one of the image's tags"
     required: true
+  __use_buildx:
+    required: false
+    default: 'false'
+    description: ''
 
 outputs:
   project: 
@@ -72,11 +76,12 @@ runs:
     # #   with:
     # #     buildkitd-flags: --debug
       
-    # - name: Set up Docker Buildx
-    #   # v2.2.1 as of 03.12.2022
-    #   uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
-    #   with:
-    #     buildkitd-flags: --debug
+    - name: Set up Docker Buildx if enabled
+      # v2.2.1 as of 03.12.2022
+      uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
+      if: inputs.__use_buildx == 'true'
+      with:
+        buildkitd-flags: --debug
         
     - name: Login to GAR if gar_key_base64 provided
       uses: docker/login-action@v1
@@ -181,14 +186,16 @@ runs:
           latest
           ${{ steps.image_commit_tag.outputs.value }}
 
-    - name: Compose cache key
+    - name: Compose cache key if buildx enabled
+      if: inputs.__use_buildx == 'true'
       shell: bash
       run: |
         cache_key=${{ runner.os }}-buildx-${{ github.sha }}-"$(env | md5sum)"-${{ hashFiles(format('{0}/**', inputs.build_context))}}
         echo "BDX_CACHE_KEY=$cache_key" >> $GITHUB_ENV
 
     # See C1
-    - name: Set cache type
+    - name: Set cache type if buildx enabled
+      if: inputs.__use_buildx == 'true'
       shell: bash
       run: |
         if [ "${{ inputs.cache_storage }}" == "registry" ]; then
@@ -201,9 +208,9 @@ runs:
         fi
 
     # See C1
-    - name: Init docker layers cache locally if requested
+    - name: Init docker layers cache locally if requested and if buildx enabled
       uses: actions/cache@v2
-      if: inputs.cache_storage != 'registry'
+      if: inputs.cache_storage != 'registry' && inputs.__use_buildx == 'true'
       with:
         path: /tmp/.buildx-cache
         key: ${{ env.BDX_CACHE_KEY }}-
@@ -221,8 +228,11 @@ runs:
         load: ${{ inputs.load == 'true' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+        # Will be empty if buildx disabled
         cache-from: ${{ env.BDX_CACHE_FROM }}
         cache-to: ${{ env.BDX_CACHE_TO }}
+
         # outputs: type=docker
         # no-cache: true
         # build-args: |
