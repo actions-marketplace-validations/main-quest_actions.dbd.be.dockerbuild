@@ -160,8 +160,11 @@ runs:
       uses: docker/metadata-action@v4.1.1
       with:
         # list of Docker images to use as base name for tags
+        # Update: trying using name= to prevent docker.io being prepended to the name
+        # images: |
+        #   ${{ steps.image_info.outputs.image_fullname }}
         images: |
-          ${{ steps.image_info.outputs.image_fullname }}
+          name=${{ steps.image_info.outputs.image_fullname }}
         # generate Docker tags based on the following events/attributes
         # tags: |
         #   type=schedule
