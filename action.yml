@@ -157,7 +157,7 @@ runs:
     # Important: make sure to not tag an image with no registry, as the push will fail
     - name: Docker meta
       id: meta
-      uses: docker/metadata-action@v3
+      uses: docker/metadata-action@v4.1.1
       with:
         # list of Docker images to use as base name for tags
         images: |
