@@ -52,8 +52,8 @@ inputs:
     description: "SHA of the builder commit, taken via github.sha. DBD_BUILDER_COMMIT arg will be passed with value <builder_commit> to the builder, as well as DBD_BUILDER_COMMIT_IMAGE_TAG with value 'buildersha-<builder_commit>', which will be one of the image's tags"
     required: true
   __use_buildx:
-    required: false
-    default: 'false'
+    required: true
+    default: 'true'
     description: ''
 
 outputs:
