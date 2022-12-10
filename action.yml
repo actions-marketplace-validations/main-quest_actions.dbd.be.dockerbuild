@@ -252,10 +252,17 @@ runs:
         #   DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
         #   DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
         #   DBD_BUILDER_COMMIT_IMAGE_TAG=${{ steps.image_commit_tag.outputs.value }}
+        # build-args: |
+        #   DBD_PROJECT_ID=${{ inputs.gcp_project }}
+        #   DBD_STAGE=${{ env.DBD_STAGE }}
+        #   DBD_COMPONENT=${{ steps.comp_name.outputs.value }}
+        #   DBD_COMPONENT=${{ inputs.main_component }}
+        #   DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
+        #   DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
+        #   DBD_BUILDER_COMMIT_IMAGE_TAG=${{ steps.image_commit_tag.outputs.value }}
         build-args: |
           DBD_PROJECT_ID=${{ inputs.gcp_project }}
           DBD_STAGE=${{ env.DBD_STAGE }}
-          DBD_COMPONENT=${{ steps.comp_name.outputs.value }}
           DBD_COMPONENT=${{ inputs.main_component }}
           DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
           DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
