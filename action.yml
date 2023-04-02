@@ -10,6 +10,10 @@ inputs:
     required: false
     default: ''
     description: ''
+  gcs_key_base64:
+    required: false
+    default: ''
+    description: 'Not used in this script, passed as DBD_GCS_KEY_BASE64'
   build_context:
     description: "Docker build context, relative to the github working dir (root of the repo)"
     required: false
@@ -267,6 +271,7 @@ runs:
           DBD_COMPONENT_ARTIFACT=${{ inputs.main_component_artifact }}
           DBD_BUILDER_COMMIT=${{ inputs.builder_commit }}
           DBD_BUILDER_COMMIT_IMAGE_TAG=${{ steps.image_commit_tag.outputs.value }}
+          DBD_GCS_KEY_BASE64=${{ inputs.gcs_key_base64 }}
 
     # See C1
     # Temp fix
